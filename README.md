@@ -62,29 +62,114 @@ powershell -ExecutionPolicy Bypass -File tools\edsdk_bridge\build.ps1
 powershell -ExecutionPolicy Bypass -File tools\edsdk_bridge\test-bridge.ps1   # uji tanpa app
 ```
 
-## Menjalankan
+## Setup di device baru
 
-```bash
-git clone https://github.com/zakaaaaa/photbooth-software.git
-```
+Clone saja **tidak cukup** untuk menjalankan app — ada satu penghadang lisensi
+(langkah 5) yang membuat app berhenti di splash screen kalau dilewati.
 
-**`ffmpeg.exe` tidak ikut di repo** (136 MB, melewati batas 100 MB GitHub). Unduh
-static build Windows dari <https://www.gyan.dev/ffmpeg/builds/>
-(`ffmpeg-release-essentials.zip`), ambil `bin\ffmpeg.exe`, taruh di
-`assets/bin/`. Alternatifnya set env `FFMPEG_PATH` atau letakkan di PATH —
-urutan pencarian ada di `assets/bin/README.txt`. Tanpa ffmpeg, pemrosesan foto
-jatuh ke `package:image` yang ~6x lebih lambat (5,4 detik vs 0,9 detik per foto 18 MP).
+### 1. Prasyarat
 
-Lalu:
+| Kebutuhan | Keterangan |
+|---|---|
+| **Flutter stable 3.44.2** | Dart SDK `>=3.0.0 <4.0.0`. `flutter doctor` harus hijau untuk Windows. |
+| **Visual Studio 2022** + workload *Desktop development with C++* | Wajib untuk `flutter build windows`. Build Tools saja cukup, tidak perlu IDE penuh. |
+| **WebView2 Runtime** | Dipakai `webview_windows` untuk halaman pembayaran DOKU. Sudah bawaan Windows 11; di Windows 10 pasang manual. |
+| **.NET Framework 4** | Hanya bila mau **build ulang** bridge EDSDK. Sudah ada di semua Windows — `build.ps1` memakai `csc.exe` bawaan, tidak perlu .NET SDK. |
+
+### 2. Clone & dependensi
 
 ```powershell
+git clone https://github.com/zakaaaaa/photbooth-software.git
+cd photbooth-software
 flutter pub get
+```
+
+### 3. ffmpeg (tidak ikut di repo)
+
+`assets/bin/ffmpeg.exe` (136 MB) melewati batas 100 MB GitHub, jadi harus diunduh
+sendiri: ambil static build Windows dari <https://www.gyan.dev/ffmpeg/builds/>
+(`ffmpeg-release-essentials.zip`), salin `bin\ffmpeg.exe` ke `assets/bin/`.
+
+Alternatif: set env `FFMPEG_PATH`, atau taruh di PATH. Urutan pencarian lengkap
+ada di `assets/bin/README.txt`.
+
+App tetap jalan tanpa ffmpeg, tapi pemrosesan foto jatuh ke `package:image` yang
+**~6x lebih lambat** — 5,4 detik vs 0,9 detik per foto 18 MP, terasa jelas sebagai
+jeda setelah setiap jepretan.
+
+### 4. Kamera Canon (opsional saat development)
+
+`EDSDK.dll`, `EdsImage.dll`, dan `edsdk_bridge.exe` **sudah ikut di repo**, jadi
+tidak perlu memasang digiCamControl di device baru. Cukup colok kamera lewat USB.
+
+Build ulang bridge hanya perlu kalau kamu mengubah `Program.cs` / `Edsdk.cs`:
+
+```powershell
+powershell -ExecutionPolicy Bypass -File tools\edsdk_bridge\build.ps1
+powershell -ExecutionPolicy Bypass -File tools\edsdk_bridge\test-bridge.ps1
+```
+
+Catatan: `build.ps1` juga mencoba menyalin ulang kedua DLL dari
+`C:\Program Files (x86)\digiCamControl`. Kalau digiCamControl tidak terpasang ia
+hanya memberi peringatan dan memakai DLL yang sudah ada di repo — aman.
+
+Tanpa kamera Canon tercolok, `_initCamera` otomatis mundur ke sumber berikutnya
+(capture card, lalu webcam).
+
+### 5. Daftarkan HWID device baru — WAJIB
+
+App terkunci per-perangkat. Saat start, `LicenseService` mengirim
+`windowsInfo.deviceId` ke `POST /api/photobooth/license/check`; kalau HWID itu
+belum terdaftar, splash screen berhenti dengan pesan lisensi tidak valid dan app
+tidak bisa lanjut sama sekali.
+
+Cara mendapatkan HWID device baru:
+
+1. Jalankan app sekali — HWID tercetak di log debug sebagai
+   `DEBUG: HWID DETECTED -> <hwid>`, dan juga tampil di halaman diagnostic.
+2. Daftarkan HWID itu lewat dashboard super admin di
+   `www.pabrikenangan.my.id` (panel HWID), atau langsung ke tabel lisensi di
+   Supabase.
+
+Selama HWID belum terdaftar, tidak ada `--dart-define` atau konfigurasi apa pun
+yang bisa melewatinya.
+
+### 6. Jalankan
+
+```powershell
 flutter run -d windows
 ```
 
-Endpoint diatur lewat `--dart-define` (lihat `lib/services/config_service.dart`),
-default produksi `https://api.pabrikenangan.my.id`. Mode AF kamera bisa
-diubah dengan `--dart-define=PHOTOBOOTH_AF_MODE=live|face|multi|quick|keep`.
+Default sudah menunjuk produksi (`https://api.pabrikenangan.my.id`). Untuk
+menunjuk backend lokal atau mengubah mode AF kamera:
+
+```powershell
+flutter run -d windows `
+  --dart-define=PROD_BACKEND_URL=http://192.168.1.10:3001 `
+  --dart-define=PHOTOBOOTH_AF_MODE=live
+```
+
+Daftar lengkap kunci `--dart-define` ada di `lib/services/config_service.dart`.
+
+### 7. Printer (hanya untuk mesin kios produksi)
+
+Geometri cetak 4R borderless sudah dikalibrasi untuk **Epson L3210**. Di mesin
+baru, jalankan setup printer dan verifikasi tanpa membuang kertas:
+
+```powershell
+powershell -ExecutionPolicy Bypass -File tools\setup-printer.ps1
+dart run tools\print_calibration.dart
+```
+
+### Kalau app tidak jalan
+
+| Gejala | Penyebab tersering |
+|---|---|
+| Berhenti di splash, pesan lisensi | HWID belum didaftarkan (langkah 5) |
+| Jeda ~5 detik tiap jepret | `ffmpeg.exe` belum ada di `assets/bin/` (langkah 3) |
+| Halaman pembayaran kosong / error WebView2 | WebView2 Runtime belum terpasang |
+| Kamera jatuh ke webcam 720p | `edsdk_bridge.exe` yatim masih memegang sesi USB — `taskkill /IM edsdk_bridge.exe` |
+| `MSB3021` saat build | `photobooth_app.exe` masih jalan mengunci DLL — `Stop-Process -Name photobooth_app -Force` |
 
 ## Catatan
 
