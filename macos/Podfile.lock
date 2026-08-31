@@ -1,0 +1,47 @@
+PODS:
+  - camera_macos (0.0.1):
+    - FlutterMacOS
+  - device_info_plus (0.0.1):
+    - FlutterMacOS
+  - FlutterMacOS (1.0.0)
+  - path_provider_foundation (0.0.1):
+    - Flutter
+    - FlutterMacOS
+  - printing (1.0.0):
+    - FlutterMacOS
+  - url_launcher_macos (0.0.1):
+    - FlutterMacOS
+
+DEPENDENCIES:
+  - camera_macos (from `Flutter/ephemeral/.symlinks/plugins/camera_macos/macos`)
+  - device_info_plus (from `Flutter/ephemeral/.symlinks/plugins/device_info_plus/macos`)
+  - FlutterMacOS (from `Flutter/ephemeral`)
+  - path_provider_foundation (from `Flutter/ephemeral/.symlinks/plugins/path_provider_foundation/darwin`)
+  - printing (from `Flutter/ephemeral/.symlinks/plugins/printing/macos`)
+  - url_launcher_macos (from `Flutter/ephemeral/.symlinks/plugins/url_launcher_macos/macos`)
+
+EXTERNAL SOURCES:
+  camera_macos:
+    :path: Flutter/ephemeral/.symlinks/plugins/camera_macos/macos
+  device_info_plus:
+    :path: Flutter/ephemeral/.symlinks/plugins/device_info_plus/macos
+  FlutterMacOS:
+    :path: Flutter/ephemeral
+  path_provider_foundation:
+    :path: Flutter/ephemeral/.symlinks/plugins/path_provider_foundation/darwin
+  printing:
+    :path: Flutter/ephemeral/.symlinks/plugins/printing/macos
+  url_launcher_macos:
+    :path: Flutter/ephemeral/.symlinks/plugins/url_launcher_macos/macos
+
+SPEC CHECKSUMS:
+  camera_macos: c2603f5eed16f05076cf17e12030d2ce55a77839
+  device_info_plus: 1b14eed9bf95428983aed283a8d51cce3d8c4215
+  FlutterMacOS: d0db08ddef1a9af05a5ec4b724367152bb0500b1
+  path_provider_foundation: 0b743cbb62d8e47eab856f09262bb8c1ddcfe6ba
+  printing: 1dd6a1fce2209ec240698e2439a4adbb9b427637
+  url_launcher_macos: 175a54c831f4375a6cf895875f716ee5af3888ce
+
+PODFILE CHECKSUM: c5d54b85afa3db339ff77938d33c4792b162a3f3
+
+COCOAPODS: 1.16.2
